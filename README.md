@@ -1,6 +1,12 @@
 # Simulador de la oferta de largo plazo de la industria
 
+
+
 Simulador interactivo, en HTML/JavaScript autocontenido, para la derivación gráfica y numérica de la curva de oferta de largo plazo de una industria competitiva, a partir de una tecnología Cobb-Douglas de rendimientos a escala generalizados y de un mecanismo explícito de respuesta de los precios de los factores al número de firmas. Desarrollado como material didáctico para un curso de Microeconomía Intermedia de nivel universitario (Bloque 3 — Estructuras de mercado; corresponde a Pindyck & Rubinfeld, *Microeconomía*, cap. 8.8).
+
+**[▶ Abrir el simulador](https://fcontiggiani.github.io/oferta-industria-lp/oferta_largo_plazo_industria.html)**
+
+![Captura de pantalla del simulador: panel de la firma representativa con el desplazamiento de CMeL y CML ante la entrada de firmas, panel de equilibrio de mercado y curva de oferta de largo plazo S_L](screenshot.png)
 
 ## Contenido
 
@@ -29,20 +35,6 @@ El archivo `oferta_largo_plazo_industria.html` contiene la totalidad del simulad
 ## Uso local
 
 Clonar o descargar este repositorio y abrir `oferta_largo_plazo_industria.html` directamente en el navegador. No se requiere servidor ni conexión a internet una vez descargado el archivo, salvo para el renderizado de las ecuaciones del bloque desplegable, que depende de MathJax servido desde CDN.
-
-## Publicación en GitHub Pages
-
-Este repositorio puede publicarse como sitio estático mediante GitHub Pages para obtener un enlace público permanente, apto para compartir con el estudiantado o incrustar en un entorno virtual de aprendizaje (por ejemplo, Moodle):
-
-1. En **Settings → Pages**, seleccionar como fuente la rama `main` y la carpeta raíz (`/`).
-2. Guardar los cambios y aguardar a que GitHub Pages compile el sitio.
-3. El simulador quedará disponible en:
-
-   ```
-   https://<usuario>.github.io/<repositorio>/oferta_largo_plazo_industria.html
-   ```
-
-Toda actualización posterior del archivo se refleja automáticamente en esa misma dirección al subir la nueva versión al repositorio.
 
 ## Licencia y uso
 
