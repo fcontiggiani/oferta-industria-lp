@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oferta de largo plazo de la industria — Cobb-Douglas generalizada</title>
+
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+  },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f7f8fa;
+    --panel-canvas: #ffffff;
+    --border: #e2e5ea;
+    --text: #1a1d23;
+    --text-soft: #5a6270;
+    --text-invert: #1a1d23;
+    --axis-line: #4b5563;
+    --axis-grid: #eceff3;
+    --axis-tick: #8a92a0;
+    --ref-gray: #9ca3af;
+    --accent-firm: #2563eb;     /* azul: empresa */
+    --accent-ind: #dc2626;      /* rojo/terracota: industria */
+    --accent-SL: #059669;       /* verde: oferta LP */
+    --accent-mkt: #7c3aed;      /* violeta: mercado */
+    --grid: #eceff3;
+    --shade-const: rgba(5,150,105,0.10);
+    --shade-grow: rgba(220,38,38,0.08);
+    --shade-decr: rgba(37,99,235,0.08);
+    --warn-bg: #fff7e6;
+    --warn-border: #f0c36d;
+    --warn-text: #7a5b00;
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14161a;
+    --panel: #1c1f26;
+    --panel-canvas: #1a1d23;
+    --border: #2e333d;
+    --text: #e8eaed;
+    --text-soft: #9aa2b1;
+    --text-invert: #e8eaed;
+    --axis-line: #6b7280;
+    --axis-grid: #262a33;
+    --axis-tick: #7b8494;
+    --ref-gray: #6b7280;
+    --accent-firm: #60a5fa;
+    --accent-ind: #f87171;
+    --accent-SL: #34d399;
+    --accent-mkt: #a78bfa;
+    --shade-const: rgba(52,211,153,0.14);
+    --shade-grow: rgba(248,113,113,0.12);
+    --shade-decr: rgba(96,165,250,0.12);
+    --warn-bg: #2a2410;
+    --warn-border: #7a5b00;
+    --warn-text: #e8c366;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    min-width: 800px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .header-text { flex: 1; }
+
+  .theme-toggle {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover { border-color: var(--accent-mkt); }
+
+  .container { max-width: 1680px; margin: 0 auto; }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .subtitle {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: var(--text-soft);
+    font-size: 0.92rem;
+    margin-bottom: 18px;
+  }
+
+  .layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .param-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .panel h2 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-soft);
+    margin: 0 0 12px 0;
+    font-weight: 700;
+  }
+
+  .ctrl { margin-bottom: 14px; }
+  .ctrl label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .ctrl label .val {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .ctrl input[type=range] {
+    width: 100%;
+    accent-color: var(--accent-ind);
+  }
+  .ctrl .hint {
+    font-size: 0.72rem;
+    color: var(--text-soft);
+    margin-top: 2px;
+  }
+
+  .divider {
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
+  }
+
+  .regime-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .regime-const { background: var(--shade-const); color: var(--accent-SL); }
+  .regime-grow  { background: var(--shade-grow);  color: var(--accent-ind); }
+  .regime-decr  { background: var(--shade-decr);  color: var(--accent-firm); }
+
+  .charts {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 16px;
+  }
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .chart-box {
+    background: var(--panel-canvas);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px 6px 16px;
+  }
+  .chart-title {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    margin-bottom: 2px;
+  }
+  .chart-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 2px;
+  }
+  .chart-title-row .chart-title { margin-bottom: 0; flex: 1; }
+  .chart-buttons {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .mini-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--accent-mkt);
+    background: var(--accent-mkt);
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mini-btn:hover { opacity: 0.88; }
+  .mini-btn-ghost {
+    background: var(--panel-canvas);
+    color: var(--text-soft);
+    border-color: var(--border);
+  }
+  .mini-btn:disabled {
+    background: var(--panel);
+    color: var(--text-soft);
+    opacity: 0.55;
+    border-color: var(--border);
+    cursor: default;
+  }
+  canvas { display: block; width: 100%; }
+
+  .results {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 0.84rem;
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-row .label { color: var(--text-soft); }
+  .result-row .value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .math-block {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px 18px 14px 18px;
+    margin-top: 4px;
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+  .math-block summary {
+    cursor: pointer;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 12px 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  .math-block summary::-webkit-details-marker { display: none; }
+  .math-block summary::before {
+    content: '▶';
+    font-size: 0.7rem;
+    color: var(--text-soft);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  .math-block[open] summary::before {
+    transform: rotate(90deg);
+  }
+  .math-block summary:hover { color: var(--accent-ind); }
+  .math-block-body { padding-top: 4px; }
+  .math-block .eq-line { margin: 6px 0; }
+  .math-note {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    margin-top: 4px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.72rem;
+    color: var(--text-soft);
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .legend span { display:flex; align-items:center; gap:4px; }
+  .swatch { width: 12px; height: 3px; display: inline-block; border-radius: 2px; }
+
+  .warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.78rem;
+    color: var(--warn-text);
+    margin-top: 10px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header-row">
+    <div class="header-text">
+      <h1>La oferta de largo plazo de la industria bajo tecnología Cobb-Douglas generalizada</h1>
+      <div class="subtitle">Pindyck &amp; Rubinfeld, cap. 8.8 — modelización con $q=K^\alpha L^\beta$, entrada endógena de firmas y precios de factores $w(n),\,r(n)$</div>
+    </div>
+    <button id="btnTheme" class="theme-toggle">🌙 Modo oscuro</button>
+  </div>
+
+  <div class="layout">
+
+    <!-- FILA SUPERIOR: PANELES DE PARÁMETROS -->
+    <div class="param-row">
+
+      <div class="panel">
+        <h2>Tecnología de la firma</h2>
+
+        <div class="ctrl">
+          <label>$\alpha$ (elasticidad de $K$) <span class="val" id="v-alpha">0.40</span></label>
+          <input type="range" id="alpha" min="0.05" max="0.90" step="0.01" value="0.40">
+        </div>
+        <div class="ctrl">
+          <label>$\beta$ (elasticidad de $L$) <span class="val" id="v-beta">0.40</span></label>
+          <input type="range" id="beta" min="0.05" max="0.90" step="0.01" value="0.40">
+          <div class="hint">Grado de homogeneidad $\rho=\alpha+\beta$: <span id="rho-badge" class="regime-badge">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Precios de factores y respuesta a la entrada</h2>
+        <div class="ctrl">
+          <label>$w_0$ (salario base) <span class="val" id="v-w0">10</span></label>
+          <input type="range" id="w0" min="2" max="40" step="0.5" value="10">
+        </div>
+        <div class="ctrl">
+          <label>$r_0$ (renta del capital base) <span class="val" id="v-r0">10</span></label>
+          <input type="range" id="r0" min="2" max="40" step="0.5" value="10">
+        </div>
+        <div class="ctrl">
+          <label>Elasticidad $\varepsilon$ de $w,r$ resp. de $n$ <span class="val" id="v-eps">0.00</span></label>
+          <input type="range" id="eps" min="-0.60" max="0.60" step="0.02" value="0.00">
+          <div class="hint" id="eps-hint">Industria de coste constante ($\varepsilon=0$)</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Número de firmas y mercado</h2>
+        <div class="ctrl">
+          <label>$n$ (número de firmas) <span class="val" id="v-n">20</span></label>
+          <input type="range" id="n" min="1" max="500" step="1" value="20">
+        </div>
+        <div class="ctrl">
+          <label>$a$ (intercepto demanda) <span class="val" id="v-a">2000</span></label>
+          <input type="range" id="a" min="200" max="6000" step="50" value="2000">
+        </div>
+        <div class="ctrl">
+          <label>$b$ (pendiente demanda) <span class="val" id="v-b">4</span></label>
+          <input type="range" id="b" min="0.5" max="20" step="0.5" value="4">
+          <div class="hint">$Q^D(P) = a - bP$</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FILA DE RESULTADOS NUMÉRICOS -->
+    <div class="panel">
+      <h2>Resultados numéricos</h2>
+      <div class="results" id="results"></div>
+    </div>
+
+    <!-- GRÁFICOS A ANCHO COMPLETO -->
+    <div class="charts">
+      <div class="chart-row">
+        <div class="chart-box">
+          <div class="chart-title">Empresa representativa: desplazamiento de CMeL y CML ante entrada (n₀ → n), según Pindyck Fig. 8.16/8.17</div>
+          <canvas id="chartFirm" width="800" height="480"></canvas>
+          <div class="legend">
+            <span><i class="swatch" style="background:var(--accent-firm)"></i>CML (n actual)</span>
+            <span><i class="swatch" style="background:var(--accent-ind)"></i>CMeL (n actual)</span>
+            <span><i class="swatch" style="background:var(--ref-gray);border-top:2px dashed var(--ref-gray);height:0"></i>CMeL, CML en n₀=20 (referencia)</span>
+            <span><i class="swatch" style="background:var(--ref-gray)"></i>P = CMeL mín. (equilibrio LP)</span>
+          </div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title-row">
+            <div class="chart-title">Mercado: demanda, oferta corto plazo (n firmas) y oferta de largo plazo $S_L$</div>
+            <div class="chart-buttons">
+              <button id="btnPinMarket" class="mini-btn">Fijar como referencia</button>
+              <button id="btnClearMarket" class="mini-btn mini-btn-ghost" disabled>Quitar referencia</button>
+            </div>
+          </div>
+          <canvas id="chartMarket" width="800" height="480"></canvas>
+          <div class="legend">
+            <span><i class="swatch" style="background:var(--accent-mkt)"></i>Demanda</span>
+            <span><i class="swatch" style="background:var(--accent-ind)"></i>Oferta CP ($n$ firmas)</span>
+            <span><i class="swatch" style="background:var(--text-invert)"></i>Eq. CP: intersección D–S (se mueve con $a,b$)</span>
+            <span><i class="swatch" style="background:var(--accent-SL)"></i>Eq. LP $(Q^*,P^*)$: beneficio nulo (no depende de $a,b$)</span>
+            <span id="legendRef" style="display:none"><i class="swatch" style="background:var(--ref-gray);border-top:2px dashed var(--ref-gray);height:0"></i>D, S y equilibrios de referencia (fijados)</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-box" style="grid-column: 1 / span 2;">
+          <div class="chart-title">Curva de oferta de largo plazo de la industria $S_L$: precio de equilibrio vs. número de firmas $n$</div>
+          <canvas id="chartSL" width="1620" height="380"></canvas>
+          <div class="legend">
+            <span><i class="swatch" style="background:var(--accent-SL)"></i>$S_L(n)$: $P^*(n) = CMeL_{\min}(w(n),r(n))$</span>
+            <span><i class="swatch" style="background:var(--accent-mkt)"></i>$n$ actual</span>
+          </div>
+        </div>
+      </div>
+      <div class="warn" id="warnIRS">⚠ Con $\rho=\alpha+\beta>1$ (rendimientos crecientes a escala), el coste medio de largo plazo es decreciente en todo el dominio: no existe un mínimo interior de $CMeL$ y, por tanto, el equilibrio competitivo de beneficio nulo con firmas de tamaño finito no está bien definido bajo precios paramétricos. El gráfico muestra la aproximación numérica sobre el dominio graficado; interprétese con la salvedad teórica indicada abajo.</div>
+    </div>
+
+  </div>
+
+  <!-- BLOQUE MATEMÁTICO DESPLEGABLE -->
+  <details class="math-block">
+    <summary>Estructura formal del modelo</summary>
+    <div class="math-block-body">
+
+    <div class="eq-line"><b>1. Tecnología (Cobb-Douglas generalizada).</b>
+    $q = f(K,L) = K^\alpha L^\beta$, con $\alpha,\beta>0$ libres. Grado de homogeneidad $\rho=\alpha+\beta$: rendimientos constantes si $\rho=1$, crecientes si $\rho>1$, decrecientes si $\rho<1$.</div>
+
+    <div class="eq-line"><b>2. Minimización de costos de la firma.</b> Dado $(w,r)$, el problema
+    $\min_{K,L} wL + rK \text{ s.a. } K^\alpha L^\beta = q$
+    tiene condición de tangencia $\dfrac{f_L}{f_K}=\dfrac{w}{r} \;\Rightarrow\; \dfrac{\beta K}{\alpha L}=\dfrac{w}{r}$, de donde surgen las demandas condicionales $K^*(w,r,q)$, $L^*(w,r,q)$ y la función de costo
+    $$C(w,r,q) = \kappa\,(w,r)\; q^{1/\rho}, \qquad \kappa(w,r)=\left(\frac{\alpha}{\beta}\right)^{\!-\beta/\rho}\!\!\left(\frac{\beta}{\alpha}\right)^{\!\alpha/\rho}\!\! w^{\beta/\rho} r^{\alpha/\rho}\left(\alpha+\beta\right)^{-1}\rho.$$
+    </div>
+
+    <div class="eq-line"><b>3. Costo medio y marginal de largo plazo.</b>
+    $CMeL(q) = C(q)/q = \kappa\, q^{(1-\rho)/\rho}$, $\; CML(q)=\kappa\,\rho^{-1}q^{(1-\rho)/\rho}\cdot 1 = \dfrac{1}{\rho}\,CMeL(q)$ (elasticidad de escala constante). Si $\rho<1$, $CMeL$ es creciente sin mínimo interior finito salvo el límite $q\to 0$: se introduce un costo fijo de largo plazo mínimo $F_0$ para generar $U$-forma y escala mínima eficiente $q^{ME}$ tal que $CMeL'(q^{ME})=0$, replicando el patrón de la Figura 8.15 de Pindyck.</div>
+
+    <div class="eq-line"><b>4. Precios de factores endógenos al tamaño de la industria.</b>
+    $$w(n) = w_0\left(\frac{n}{n_0}\right)^{\varepsilon}, \qquad r(n) = r_0\left(\frac{n}{n_0}\right)^{\varepsilon}.$$
+    Este es el mecanismo formalizado de §8.8: $\varepsilon=0$ deja $CMeL$ inalterado ante la entrada (industria de <i>coste constante</i>); $\varepsilon>0$ desplaza $CMeL$ hacia arriba cuando $n$ crece (industria de <i>coste creciente</i>, Fig. 8.17); $\varepsilon<0$ lo desplaza hacia abajo (industria de <i>coste decreciente</i>).</div>
+
+    <div class="eq-line"><b>5. Equilibrio de largo plazo (beneficio nulo).</b> Con $n$ firmas simétricas, el precio de equilibrio de largo plazo satisface
+    $$P^*(n) = CMeL_{\min}\big(w(n), r(n)\big),$$
+    y la cantidad de equilibrio de la industria es $Q^*(n) = n\cdot q^{ME}(n)$. La curva de oferta de largo plazo de la industria es el lugar geométrico
+    $$S_L = \big\{(Q^*(n),\,P^*(n)) : n \in \mathbb{N}\big\}.$$
+    </div>
+
+    <div class="eq-line"><b>6. Pendiente de $S_L$.</b> Diferenciando totalmente,
+    $$\frac{dP^*}{dn} = \frac{\partial CMeL_{\min}}{\partial w}\,w'(n) + \frac{\partial CMeL_{\min}}{\partial r}\,r'(n)\; \propto\; \varepsilon.$$
+    Por el lema de Shephard aplicado a $\kappa(w,r)$, el signo de $dP^*/dn$ coincide con el signo de $\varepsilon$: la elasticidad de $S_L$ respecto de $Q$ es finita y positiva cuando $\varepsilon>0$ (coste creciente), infinita (horizontal) cuando $\varepsilon=0$, y negativa cuando $\varepsilon<0$ (coste decreciente) — reproduciendo exactamente la tricotomía de la sección 8.8.</div>
+
+    <p class="math-note">Nota: la reparametrización $\rho=\alpha+\beta$ generaliza el caso de Pindyck (implícitamente CRS, $\rho=1$, en el ejemplo del equipo de béisbol) a rendimientos no constantes. Con $\rho\neq 1$, la elasticidad de escala $1/\rho$ del costo determina además la curvatura de $CMeL$ a nivel de firma, independientemente del régimen de industria (que depende exclusivamente de $\varepsilon$). Los datos numéricos son ilustrativos.</p>
+    </div>
+  </details>
+</div>
+
+<script>
+(function(){
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  const els = {
+    alpha: document.getElementById('alpha'),
+    beta: document.getElementById('beta'),
+    w0: document.getElementById('w0'),
+    r0: document.getElementById('r0'),
+    eps: document.getElementById('eps'),
+    n: document.getElementById('n'),
+    a: document.getElementById('a'),
+    b: document.getElementById('b'),
+  };
+  const vals = {
+    alpha: document.getElementById('v-alpha'),
+    beta: document.getElementById('v-beta'),
+    w0: document.getElementById('v-w0'),
+    r0: document.getElementById('v-r0'),
+    eps: document.getElementById('v-eps'),
+    n: document.getElementById('v-n'),
+    a: document.getElementById('v-a'),
+    b: document.getElementById('v-b'),
+  };
+
+  const n0 = 20; // firmas de referencia para w0, r0
+  const F0 = 40; // costo fijo de largo plazo mínimo (genera forma U del CMeL)
+
+  // Snapshot del panel de mercado: captura los parámetros vigentes al presionar
+  // "Fijar como referencia" para dibujar D, S y los equilibrios de ese estado
+  // superpuestos (en gris punteado) al estado actual, permitiendo contrastar
+  // visualmente el efecto de mover los sliders tras la fijación.
+  let marketSnapshot = null;
+
+  const btnPin = document.getElementById('btnPinMarket');
+  const btnClear = document.getElementById('btnClearMarket');
+  btnPin.addEventListener('click', () => {
+    marketSnapshot = params();
+    btnClear.disabled = false;
+    document.getElementById('legendRef').style.display = 'flex';
+    render();
+  });
+  btnClear.addEventListener('click', () => {
+    marketSnapshot = null;
+    btnClear.disabled = true;
+    document.getElementById('legendRef').style.display = 'none';
+    render();
+  });
+
+  function params(){
+    return {
+      alpha: parseFloat(els.alpha.value),
+      beta: parseFloat(els.beta.value),
+      w0: parseFloat(els.w0.value),
+      r0: parseFloat(els.r0.value),
+      eps: parseFloat(els.eps.value),
+      n: parseInt(els.n.value),
+      a: parseFloat(els.a.value),
+      b: parseFloat(els.b.value),
+    };
+  }
+
+  // w(n), r(n)
+  function wOf(n, p){ return p.w0 * Math.pow(n / n0, p.eps); }
+  function rOf(n, p){ return p.r0 * Math.pow(n / n0, p.eps); }
+
+  // kappa(w,r): coeficiente de costo unitario a partir de la condición de tangencia
+  // C(w,r,q) = kappa(w,r) * q^(1/rho)
+  function kappa(w, r, p){
+    const rho = p.alpha + p.beta;
+    const a1 = Math.pow(p.alpha / p.beta, -p.beta / rho);
+    const a2 = Math.pow(p.beta / p.alpha, p.alpha / rho);
+    const wr = Math.pow(w, p.beta / rho) * Math.pow(r, p.alpha / rho);
+    return (a1 * a2 * wr) / rho * rho; // simplifica a a1*a2*wr (rho se cancela) -- se deja explícito por trazabilidad
+  }
+
+  // Costo total de largo plazo con costo fijo mínimo F0 para generar forma U
+  // CT(q) = F0 + kappa * q^(1/rho)
+  function CT(q, w, r, p){
+    const rho = p.alpha + p.beta;
+    return F0 + kappa(w, r, p) * Math.pow(Math.max(q, 1e-6), 1 / rho);
+  }
+  function CMeL(q, w, r, p){ return CT(q, w, r, p) / Math.max(q, 1e-6); }
+  function CML(q, w, r, p){
+    const rho = p.alpha + p.beta;
+    const k = kappa(w, r, p);
+    return (k / rho) * Math.pow(Math.max(q, 1e-6), 1/rho - 1);
+  }
+
+  // Mínimo de CMeL: con F0>0 y rho<1 (o rho>=1), CMeL tiene forma U si el exponente 1/rho - 1 != 0.
+  // CMeL(q) = F0/q + kappa*q^(1/rho - 1). Derivando e igualando a cero:
+  // -F0/q^2 + kappa*(1/rho -1)*q^(1/rho-2) = 0  =>  q* resuelve numéricamente (golden search)
+  function findMinCMeL(w, r, p){
+    const rho = p.alpha + p.beta;
+    // Búsqueda de grilla logarítmica (barata) para localizar el entorno del mínimo,
+    // seguida de refinamiento por sección áurea. Se prefiere grilla log a grilla lineal
+    // porque q* puede variar en varios órdenes de magnitud según w, r y n (hasta 500 firmas),
+    // y una grilla lineal fija sería o bien demasiado costosa o bien insuficientemente fina.
+    let bestQ = 1, bestC = CMeL(1, w, r, p);
+    for (let e = -20; e <= 140; e++){
+      const q = Math.pow(1.08, e); // ~1.08^140 ≈ 5×10^4, ~1.08^-20 ≈ 0.2: cubre el rango relevante
+      const c = CMeL(q, w, r, p);
+      if (c < bestC){ bestC = c; bestQ = q; }
+    }
+    // refinamiento local por sección áurea, en torno al mejor punto de grilla
+    let lo = Math.max(0.05, bestQ * 0.85), hi = bestQ * 1.18 + 1;
+    for (let iter = 0; iter < 50; iter++){
+      const m1 = lo + (hi - lo) / 3;
+      const m2 = hi - (hi - lo) / 3;
+      if (CMeL(m1, w, r, p) < CMeL(m2, w, r, p)) hi = m2; else lo = m1;
+    }
+    const qStar = (lo + hi) / 2;
+    return { q: qStar, c: CMeL(qStar, w, r, p) };
+  }
+
+  function drawAxes(ctx, W, H, pad, xMax, yMax, xLabel, yLabel){
+    ctx.clearRect(0,0,W,H);
+    ctx.font = '11px Helvetica, Arial, sans-serif';
+
+    // grid
+    ctx.strokeStyle = cssVar('--axis-grid');
+    ctx.lineWidth = 1;
+    for (let i=1;i<=8;i++){
+      const gx = pad.l + (W-pad.l-pad.r) * i/8;
+      ctx.beginPath(); ctx.moveTo(gx, pad.t); ctx.lineTo(gx, H-pad.b); ctx.stroke();
+    }
+    for (let j=1;j<=6;j++){
+      const gy = pad.t + (H-pad.t-pad.b) * j/6;
+      ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(W-pad.r, gy); ctx.stroke();
+    }
+
+    ctx.strokeStyle = cssVar('--axis-line');
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b);
+    ctx.stroke();
+
+    ctx.fillStyle = cssVar('--text-soft');
+    ctx.fillText(xLabel, W-pad.r-40, H-pad.b+16);
+    ctx.save();
+    ctx.translate(pad.l-30, pad.t+10);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+
+    // ticks
+    ctx.fillStyle = cssVar('--axis-tick');
+    for (let i=0;i<=4;i++){
+      const gx = pad.l + (W-pad.l-pad.r)*i/4;
+      const xv = xMax*i/4;
+      ctx.fillText(xv.toFixed(xv<10?1:0), gx-8, H-pad.b+14);
+    }
+    for (let j=0;j<=4;j++){
+      const gy = H-pad.b - (H-pad.t-pad.b)*j/4;
+      const yv = yMax*j/4;
+      ctx.fillText(yv.toFixed(yv<10?1:0), pad.l-26, gy+3);
+    }
+  }
+
+  function toPx(x, y, W, H, pad, xMax, yMax){
+    return {
+      x: pad.l + (x/xMax) * (W - pad.l - pad.r),
+      y: (H - pad.b) - (y/yMax) * (H - pad.t - pad.b)
+    };
+  }
+
+  function plotLine(ctx, pts, color, W, H, pad, xMax, yMax, width){
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width || 2.2;
+    ctx.beginPath();
+    let started = false;
+    for (const [x,y] of pts){
+      if (y == null || !isFinite(y) || y < 0 || y > yMax*1.4) { started=false; continue; }
+      const p = toPx(Math.min(x,xMax), Math.min(y,yMax), W, H, pad, xMax, yMax);
+      if (!started){ ctx.moveTo(p.x,p.y); started=true; } else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+  }
+
+  function dot(ctx, x, y, W, H, pad, xMax, yMax, color, r){
+    const p = toPx(Math.min(x,xMax), Math.min(y,yMax), W, H, pad, xMax, yMax);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r||4, 0, 2*Math.PI); ctx.fill();
+  }
+
+  function fmt(x, d){ return x.toLocaleString('es-AR', {minimumFractionDigits: d==null?2:d, maximumFractionDigits: d==null?2:d}); }
+
+  function render(){
+    const p = params();
+    const rho = p.alpha + p.beta;
+
+    vals.alpha.textContent = p.alpha.toFixed(2);
+    vals.beta.textContent = p.beta.toFixed(2);
+    vals.w0.textContent = p.w0.toFixed(1);
+    vals.r0.textContent = p.r0.toFixed(1);
+    vals.eps.textContent = p.eps.toFixed(2);
+    vals.n.textContent = p.n;
+    vals.a.textContent = p.a;
+    vals.b.textContent = p.b.toFixed(1);
+
+    // Badge de régimen (rendimientos a escala)
+    const rhoBadge = document.getElementById('rho-badge');
+    if (Math.abs(rho-1) < 0.02){ rhoBadge.textContent = 'RCE (ρ≈1)'; rhoBadge.className='regime-badge regime-const'; }
+    else if (rho > 1){ rhoBadge.textContent = 'Crecientes (ρ='+rho.toFixed(2)+')'; rhoBadge.className='regime-badge regime-grow'; }
+    else { rhoBadge.textContent = 'Decrecientes (ρ='+rho.toFixed(2)+')'; rhoBadge.className='regime-badge regime-decr'; }
+
+    document.getElementById('warnIRS').style.display = (rho > 1.15) ? 'block' : 'none';
+
+    // Badge de tipo de industria (eps)
+    const epsHint = document.getElementById('eps-hint');
+    if (Math.abs(p.eps) < 0.01) epsHint.textContent = 'Industria de coste constante (ε=0): S_L horizontal';
+    else if (p.eps > 0) epsHint.textContent = 'Industria de coste creciente (ε>0): S_L con pendiente positiva';
+    else epsHint.textContent = 'Industria de coste decreciente (ε<0): S_L con pendiente negativa';
+
+    const w = wOf(p.n, p);
+    const r = rOf(p.n, p);
+    const minInfo = findMinCMeL(w, r, p);
+    const qME = minInfo.q;
+    const Pstar = minInfo.c;
+    const Qstar = p.n * qME;
+
+    // ===== Gráfico 1: CMeL, CML de la firma =====
+    // Réplica de la lógica de Pindyck Fig. 8.16/8.17: se muestra el estado de referencia
+    // (n = n0, "antes de la entrada") en gris punteado y el estado actual (n del slider,
+    // "después de la entrada") en color sólido, para visualizar el desplazamiento de
+    // CMeL/CML inducido por w(n), r(n) según el signo de epsilon.
+    const w0cur = wOf(n0, p), r0cur = rOf(n0, p);
+    const minInfo0 = findMinCMeL(w0cur, r0cur, p);
+    const qME0 = minInfo0.q, Pstar0 = minInfo0.c;
+
+    const c1 = document.getElementById('chartFirm');
+    const ctx1 = c1.getContext('2d');
+    const W1 = c1.width, H1 = c1.height, pad1 = {l:46,r:14,t:14,b:34};
+    const qMax = Math.max(qME, qME0) * 3.2;
+    const yMax1 = Math.max(Pstar, Pstar0) * 2.4 || 10;
+    drawAxes(ctx1, W1, H1, pad1, qMax, yMax1, 'q (firma)', '$/u.');
+
+    // curvas de referencia (n = n0), solo si n actual difiere de n0
+    if (p.n !== n0){
+      let ptsCMe0=[], ptsCM0=[];
+      for (let i=1;i<=200;i++){
+        const q = qMax*i/200;
+        ptsCMe0.push([q, CMeL(q,w0cur,r0cur,p)]);
+        ptsCM0.push([q, CML(q,w0cur,r0cur,p)]);
+      }
+      ctx1.setLineDash([5,4]);
+      plotLine(ctx1, ptsCM0, cssVar('--ref-gray'), W1,H1,pad1,qMax,yMax1, 1.6);
+      plotLine(ctx1, ptsCMe0, cssVar('--ref-gray'), W1,H1,pad1,qMax,yMax1, 1.6);
+      ctx1.setLineDash([]);
+      dot(ctx1, qME0, Pstar0, W1,H1,pad1,qMax,yMax1, cssVar('--ref-gray'), 3.5);
+      ctx1.fillStyle = cssVar('--ref-gray');
+      ctx1.font = '11px Helvetica, Arial, sans-serif';
+      const lp0 = toPx(Math.min(qME0,qMax), Math.min(Pstar0,yMax1), W1,H1,pad1,qMax,yMax1);
+      const vAlign = (Pstar >= Pstar0) ? 10 : -8; // evita solapar etiquetas cuando las curvas casi coinciden
+      ctx1.fillText('A (n₀)', lp0.x+4, lp0.y+vAlign);
+    }
+
+    // curvas actuales (n del slider)
+    let ptsCMe=[], ptsCM=[];
+    for (let i=1;i<=200;i++){
+      const q = qMax*i/200;
+      ptsCMe.push([q, CMeL(q,w,r,p)]);
+      ptsCM.push([q, CML(q,w,r,p)]);
+    }
+    plotLine(ctx1, ptsCM, getComputedStyle(document.documentElement).getPropertyValue('--accent-firm'), W1,H1,pad1,qMax,yMax1);
+    plotLine(ctx1, ptsCMe, getComputedStyle(document.documentElement).getPropertyValue('--accent-ind'), W1,H1,pad1,qMax,yMax1);
+
+    // línea horizontal P* = CMeL min (estado actual)
+    ctx1.strokeStyle = cssVar('--ref-gray');
+    ctx1.setLineDash([4,3]);
+    ctx1.lineWidth = 1.2;
+    ctx1.beginPath();
+    const py = toPx(0, Math.min(Pstar,yMax1), W1,H1,pad1,qMax,yMax1).y;
+    ctx1.moveTo(pad1.l, py); ctx1.lineTo(W1-pad1.r, py);
+    ctx1.stroke();
+    ctx1.setLineDash([]);
+    dot(ctx1, qME, Pstar, W1,H1,pad1,qMax,yMax1, cssVar('--text-invert'), 4.5);
+    ctx1.fillStyle = cssVar('--text-invert');
+    ctx1.font = '11px Helvetica, Arial, sans-serif';
+    const lp = toPx(qME, Pstar, W1,H1,pad1,qMax,yMax1);
+    if (p.n !== n0){
+      const vAlignB = (Pstar < Pstar0) ? 10 : -8;
+      ctx1.fillText('B (n='+p.n+')', lp.x+4, lp.y+vAlignB-8);
+    }
+    ctx1.fillText('  q^ME = '+fmt(qME,1), lp.x+4, lp.y-8);
+
+    // ===== Gráfico 2: Mercado (oferta CP con n firmas + demanda + S_L punteada) =====
+    const c2 = document.getElementById('chartMarket');
+    const ctx2 = c2.getContext('2d');
+    const W2 = c2.width, H2 = c2.height, pad2 = {l:46,r:14,t:14,b:34};
+
+    // Cálculo del equilibrio de mercado (CP) y de demanda/oferta para un juego de
+    // parámetros dado (usado tanto para el estado actual como para el snapshot fijado).
+    function marketState(pp){
+      const rhoL = pp.alpha + pp.beta;
+      const wL = wOf(pp.n, pp), rL = rOf(pp.n, pp);
+      const kL = kappa(wL, rL, pp);
+      const miL = findMinCMeL(wL, rL, pp);
+      const QstarL = pp.n * miL.q, PstarL = miL.c;
+      function QSL(P){
+        let q;
+        if (Math.abs(1-rhoL) < 1e-6){
+          q = (P >= kL) ? miL.q*50 : 0;
+        } else {
+          const expo = rhoL/(1-rhoL);
+          const base = P*rhoL/kL;
+          q = base>0 ? Math.pow(base, expo) : 0;
+        }
+        if (!isFinite(q) || q<0) q = 0;
+        return pp.n*q;
+      }
+      function QDL(P){ return pp.a - pp.b*P; }
+      let Plo=1e-4, Phi = Math.max(PstarL*3, pp.a/pp.b*3, 100);
+      let excLo = QDL(Plo)-QSL(Plo), excHi = QDL(Phi)-QSL(Phi);
+      let Pmk=null, Qmk=null;
+      if (excLo>0 && excHi<0){
+        for (let it=0; it<60; it++){
+          const Pm=(Plo+Phi)/2;
+          if (QDL(Pm)-QSL(Pm) > 0) Plo=Pm; else Phi=Pm;
+        }
+        Pmk=(Plo+Phi)/2; Qmk=QDL(Pmk);
+      }
+      return { rho: rhoL, k: kL, Qstar: QstarL, Pstar: PstarL, QS: QSL, QD: QDL, Pmkt: Pmk, Qmkt: Qmk };
+    }
+
+    const cur = marketState(p);
+    const ref = marketSnapshot ? marketState(marketSnapshot) : null;
+
+    const QMax2 = Math.max(
+      cur.Qstar*2.2, p.a*0.9, p.a - p.b*0.01,
+      ref ? ref.Qstar*2.2 : 0, ref ? marketSnapshot.a*0.9 : 0
+    );
+    const PMax2 = Math.max(
+      cur.Pstar*2.4, p.a/p.b*1.1, 10,
+      ref ? ref.Pstar*2.4 : 0, ref ? marketSnapshot.a/marketSnapshot.b*1.1 : 0
+    );
+    drawAxes(ctx2, W2,H2,pad2, QMax2, PMax2, 'Q (industria)', 'P');
+
+    // ---- curvas de referencia (snapshot fijado), en gris punteado, dibujadas primero ----
+    if (ref){
+      let ptsDref=[], ptsSref=[];
+      for (let i=0;i<=200;i++){
+        const Q = QMax2*i/200;
+        ptsDref.push([Q, (marketSnapshot.a - Q)/marketSnapshot.b]);
+      }
+      for (let i=1;i<=200;i++){
+        const P = PMax2*i/200;
+        ptsSref.push([ref.QS(P), P]);
+      }
+      ctx2.setLineDash([5,4]);
+      plotLine(ctx2, ptsDref, cssVar('--ref-gray'), W2,H2,pad2,QMax2,PMax2, 1.6);
+      plotLine(ctx2, ptsSref, cssVar('--ref-gray'), W2,H2,pad2,QMax2,PMax2, 1.6);
+      ctx2.setLineDash([]);
+      if (ref.Pmkt!==null){
+        dot(ctx2, ref.Qmkt, ref.Pmkt, W2,H2,pad2,QMax2,PMax2, cssVar('--ref-gray'), 4);
+      }
+      dot(ctx2, ref.Qstar, ref.Pstar, W2,H2,pad2,QMax2,PMax2, cssVar('--ref-gray'), 4);
+    }
+
+    // ---- curvas del estado actual ----
+    let ptsD=[];
+    for (let i=0;i<=200;i++){
+      const Q = QMax2*i/200;
+      ptsD.push([Q, (p.a - Q)/p.b]);
+    }
+    plotLine(ctx2, ptsD, getComputedStyle(document.documentElement).getPropertyValue('--accent-mkt'), W2,H2,pad2,QMax2,PMax2);
+
+    let ptsS=[];
+    for (let i=1;i<=200;i++){
+      const P = PMax2*i/200;
+      ptsS.push([cur.QS(P), P]);
+    }
+    plotLine(ctx2, ptsS, getComputedStyle(document.documentElement).getPropertyValue('--accent-ind'), W2,H2,pad2,QMax2,PMax2);
+
+    if (cur.Pmkt !== null && cur.Pmkt > 0 && cur.Qmkt > 0){
+      dot(ctx2, cur.Qmkt, cur.Pmkt, W2,H2,pad2,QMax2,PMax2, cssVar('--text-invert'), 5);
+      ctx2.fillStyle = cssVar('--text-invert');
+      ctx2.font = 'bold 11px Helvetica, Arial, sans-serif';
+      const lpm = toPx(Math.min(cur.Qmkt,QMax2), Math.min(cur.Pmkt,PMax2), W2,H2,pad2,QMax2,PMax2);
+      ctx2.fillText('  Eq. CP (n dado)', lpm.x+4, lpm.y+14);
+    }
+
+    // punto de equilibrio LP (Q*,P*): beneficio nulo, depende solo de costos (no de a,b)
+    dot(ctx2, cur.Qstar, cur.Pstar, W2,H2,pad2,QMax2,PMax2, getComputedStyle(document.documentElement).getPropertyValue('--accent-SL'), 5);
+    ctx2.fillStyle = cssVar('--text-invert');
+    const lp2 = toPx(Math.min(cur.Qstar,QMax2), Math.min(cur.Pstar,PMax2), W2,H2,pad2,QMax2,PMax2);
+    ctx2.font = '11px Helvetica, Arial, sans-serif';
+    ctx2.fillText('  (Q*,P*) LP', lp2.x+4, lp2.y-8);
+
+    // ===== Gráfico 3: S_L(n) — barrido de n =====
+    const c3 = document.getElementById('chartSL');
+    const ctx3 = c3.getContext('2d');
+    const W3 = c3.width, H3 = c3.height, pad3 = {l:50,r:20,t:14,b:34};
+
+    // Barrido de n: el rango de barrido siempre cubre al menos [1, n_actual] para que el
+    // punto marcado quede dentro del dominio graficado. Con n_max grande (hasta 500) se
+    // muestrea con paso adaptativo en vez de recorrer cada entero, para mantener el costo
+    // de findMinCMeL (grilla + refinamiento) acotado por frame.
+    const nSweepMax = Math.max(80, p.n);
+    const nSamples = 90; // cantidad fija de puntos muestreados a lo largo del barrido
+    const nStep = Math.max(1, Math.round(nSweepMax / nSamples));
+
+    let slPts = [];
+    let maxQ3 = 0, maxP3 = 0;
+    for (let nn=1; nn<=nSweepMax; nn+=nStep){
+      const wn = wOf(nn,p), rn = rOf(nn,p);
+      const mi = findMinCMeL(wn, rn, p);
+      const Qn = nn*mi.q;
+      slPts.push([Qn, mi.c, nn]);
+      if (Qn>maxQ3) maxQ3=Qn;
+      if (mi.c>maxP3) maxP3=mi.c;
+    }
+    // asegurar que el último punto del barrido sea exactamente nSweepMax
+    if ((slPts.length===0) || slPts[slPts.length-1][2] !== nSweepMax){
+      const wn = wOf(nSweepMax,p), rn = rOf(nSweepMax,p);
+      const mi = findMinCMeL(wn, rn, p);
+      const Qn = nSweepMax*mi.q;
+      slPts.push([Qn, mi.c, nSweepMax]);
+      if (Qn>maxQ3) maxQ3=Qn;
+      if (mi.c>maxP3) maxP3=mi.c;
+    }
+    maxQ3 = Math.max(maxQ3*1.08, 10);
+    maxP3 = Math.max(maxP3*1.25, 10);
+    drawAxes(ctx3, W3,H3,pad3, maxQ3, maxP3, 'Q (industria, en equilibrio de LP)', 'P*');
+
+    plotLine(ctx3, slPts.map(d=>[d[0],d[1]]), getComputedStyle(document.documentElement).getPropertyValue('--accent-SL'), W3,H3,pad3,maxQ3,maxP3, 2.6);
+
+    // marcar n actual
+    const wCur = wOf(p.n,p), rCur = rOf(p.n,p);
+    const curInfo = findMinCMeL(wCur,rCur,p);
+    dot(ctx3, p.n*curInfo.q, curInfo.c, W3,H3,pad3,maxQ3,maxP3, getComputedStyle(document.documentElement).getPropertyValue('--accent-mkt'), 5.5);
+
+    // ===== Resultados numéricos =====
+    const rhoTxt = rho.toFixed(2);
+    const elasticity = (Math.abs(p.eps)<0.005) ? '∞ (horizontal)' : (1/ (p.eps) ).toFixed(2)+' (aprox.)';
+    document.getElementById('results').innerHTML = `
+      <div class="result-row"><span class="label">ρ = α+β</span><span class="value">${rhoTxt}</span></div>
+      <div class="result-row"><span class="label">w(n), r(n)</span><span class="value">${fmt(w,2)} / ${fmt(r,2)}</span></div>
+      <div class="result-row"><span class="label">q^ME (firma)</span><span class="value">${fmt(qME,2)}</span></div>
+      <div class="result-row"><span class="label">CMeL mín. = P*</span><span class="value">${fmt(Pstar,2)}</span></div>
+      <div class="result-row"><span class="label">Q* industria</span><span class="value">${fmt(Qstar,1)}</span></div>
+      <div class="result-row"><span class="label">Régimen S_L</span><span class="value">${p.eps>0.005?'Creciente':(p.eps<-0.005?'Decreciente':'Constante')}</span></div>
+      <div class="result-row"><span class="label">Pendiente dP*/dn</span><span class="value">${p.eps>=0?'≥ 0':'< 0'}</span></div>
+    `;
+
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      // no re-typeset en cada frame para performance; los labels de ejes son texto plano
+    }
+  }
+
+  Object.values(els).forEach(el => el.addEventListener('input', render));
+
+  // ===== Toggle de tema claro/oscuro =====
+  // Persistencia vía localStorage envuelta en try/catch (restricciones de sandbox
+  // en iframes de Moodle pueden bloquear el acceso silenciosamente).
+  const btnTheme = document.getElementById('btnTheme');
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    btnTheme.textContent = (theme === 'dark') ? '☀️ Modo claro' : '🌙 Modo oscuro';
+    try { localStorage.setItem('oferta-lp-theme', theme); } catch(e) {}
+    render(); // los colores del canvas se leen de las variables CSS: hay que redibujar
+  }
+  let savedTheme = 'light';
+  try {
+    const st = localStorage.getItem('oferta-lp-theme');
+    if (st === 'dark' || st === 'light') savedTheme = st;
+    else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) savedTheme = 'dark';
+  } catch(e) {}
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  btnTheme.textContent = (savedTheme === 'dark') ? '☀️ Modo claro' : '🌙 Modo oscuro';
+  btnTheme.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  render();
+
+  window.addEventListener('load', () => {
+    if (window.MathJax) MathJax.typesetPromise();
+  });
+})();
+</script>
+</body>
+</html>
